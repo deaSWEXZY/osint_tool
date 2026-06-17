@@ -1,0 +1,14 @@
+{
+  "GitHub": {
+    "url": "https://github.com/{}",
+    "error_text": "Not Found"
+  },
+  "Twitter": {
+    "url": "https://twitter.com/{}",
+    "error_text": "This account doesn’t exist"
+  },
+  "Telegram": {
+    "url": "https://t.me/{}",
+    "success_text": "tgme_page_title"
+  }
+}
