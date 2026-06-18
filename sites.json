@@ -9,6 +9,17 @@
   },
   "Telegram": {
     "url": "https://t.me/{}",
+    "error_text": "If you have <strong>Telegram</strong>, you can contact",
     "success_text": "tgme_page_title"
+  },
+  "Instagram": {
+    "url": "https://www.instagram.com/{}/",
+    "error_text": "Page Not Found",
+    "success_text": "meta property=\"og:title\" content=\""
+  },
+  "Instagram_Bypass": {
+    "url": "https://www.picuki.com/profile/{}",
+    "error_text": "Profile does not exist",
+    "success_text": "profile-info"
   }
 }
