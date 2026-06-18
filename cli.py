@@ -33,6 +33,6 @@ parser.add_argument("--output", choices=['json', 'csv'], help='Save results as C
 args = parser.parse_args()
 
 # ----------- USER INPUT -----------
-USER_NAME = args.username
+USER_NAME = args.username.strip()
 SITE_TO_SEARCH = args.site or ""
 OUTPUT_FILE = args.output

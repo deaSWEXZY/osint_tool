@@ -12,7 +12,7 @@ init(autoreset=True) #Colorama Color Reset
 
 class SiteSearch:
     def __init__(self, target_username, target_site, export_file=""):
-        self.target = target_username
+        self.target = target_username.strip()
         self.target_site = target_site
         self.export_file = export_file
         self.lock = threading.Lock()

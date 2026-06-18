@@ -1,5 +1,5 @@
 if __name__ == "__main__":
     import cli
-    from modules import SiteSearch
-    scanner = SiteSearch(cli.USER_NAME, cli.SITE_TO_SEARCH, cli.OUTPUT_FILE)
-    scanner.run_all()
+    from modules.username import SiteSearch
+    scanner_username = SiteSearch(cli.USER_NAME, cli.SITE_TO_SEARCH, cli.OUTPUT_FILE)
+    scanner_username.run_all()
