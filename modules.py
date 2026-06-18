@@ -2,7 +2,6 @@ import requests
 import json
 from colorama import Fore, init
 import os
-import tempfile
 
 init(autoreset=True) #Colorama Color Reset
 
