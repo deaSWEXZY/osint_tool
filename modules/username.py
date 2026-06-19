@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import csv
 from config import USER_AGENTS, TOR_PROXY
 from random import choice
+from bs4 import BeautifulSoup
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -39,8 +40,8 @@ class SiteSearch:
         try:
             response = requests.get(final_url, headers=headers, proxies=TOR_PROXY, timeout=10)
             if self.site_reach_errors(ping=response, site_name=site_name):
-                return 
-
+                return  
+            soup = BeautifulSoup(response.text, "html.parser")
             success_marker = site_data.get("success_text")
             error_marker = site_data.get("error_text")
 
@@ -49,12 +50,18 @@ class SiteSearch:
 
             if is_found:
                 print(f"{Fore.GREEN}[+] Found {site_name}!!\n{final_url}\n")
+                metadata = self.extract_metadata(site_data, soup)
+                for key, value in metadata.items():
+                    if len(value) == 0:
+                        print(f"{Fore.CYAN}{key}: Empty Here!!")
+                    else:
+                        print(f"{Fore.CYAN}{key}: {value}")
                 with self.lock:
                     self.results.append({
                         "platform": site_name, 
-                        "url": final_url
+                        "url": final_url,
+                        **metadata
                 })
-
             else:
                 print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}\n")
     
@@ -74,7 +81,7 @@ class SiteSearch:
         
         else:
             print(Fore.CYAN + "[*] Scan complete. (Data not saved to disk)")
-        
+            
     # ----------- RUN FUNCTION -----------
     def run_all(self):
         self.load_data()
@@ -119,3 +126,13 @@ class SiteSearch:
         if ping.status_code >= 400:
             print(Fore.YELLOW + f"[~] Unexpected status {ping.status_code} on {site_name}\n")
             return True
+    
+    def extract_metadata(self, site_data, soup):
+        metadata = {}
+        fields = site_data.get("metadata", {})
+
+        for field, selector in fields.items():
+            element = soup.find(selector["tag"], class_=selector["class"])
+            if element:
+                metadata[field] = element.text.strip()
+        return metadata

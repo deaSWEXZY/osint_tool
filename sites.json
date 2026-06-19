@@ -2,55 +2,50 @@
   "Twitter": {
   "url": "https://twitter.com/{}",
   "error_text": "This account doesn't exist"
-},
-  "Instagram": {
-    "url": "https://www.instagram.com/{}/",
-    "error_text": "Page Not Found",
-    "success_text": "meta property=\"og:title\" content=\""
-},
-  "Instagram_Bypass": {
-    "url": "https://www.picuki.com/profile/{}",
-    "error_text": "Profile does not exist",
-    "success_text": "profile-info"
-},
+  },
   "GitHub": {
   "url": "https://github.com/{}",
   "check_type": "error_text",
-  "error_text": "Not Found"
-},
-  "Telegram": {
-    "url": "https://t.me/{}",
-    "check_type": "success_text",
-    "success_text": "tgme_page_title"
-},
+  "error_text": "Not Found",
+  "metadata": {
+        "name": {"tag": "span", "class": "p-name"},
+        "bio": {"tag": "div", "class": "p-note"},
+        "location": {"tag": "span", "class": "p-label"}
+    }
+  },
   "Reddit": {
   "url": "https://www.reddit.com/user/{}",
   "check_type": "error_text",
   "error_text": "Sorry, nobody on Reddit goes by that name"
-},
+  },
   "HackerNews": {
     "url": "https://hacker-news.firebaseio.com/v0/user/{}.json",
     "check_type": "success_text",
     "success_text": "created"
-},
+  },
   "Pinterest": {
     "url": "https://www.pinterest.com/{}/",
     "check_type": "error_text",
     "error_text": "page not found"
-},
+  },
   "DevTo": {
     "url": "https://dev.to/{}",
     "check_type": "error_text",
     "error_text": "404"
-},
+  },
   "Pastebin": {
     "url": "https://pastebin.com/u/{}",
     "check_type": "error_text",
     "error_text": "Not Found"
-},
+  },
   "Keybase": {
     "url": "https://keybase.io/{}",
     "check_type": "error_text",
     "error_text": "\"them\":[]"
-}
+  },
+  "GitLab": {
+    "url": "https://gitlab.com/{}",
+    "check_type": "error_text",
+    "error_text": "404"
+  }
 }
