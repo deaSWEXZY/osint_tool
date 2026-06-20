@@ -5,7 +5,7 @@ from config import TOR_PROXY
 
 init(autoreset=True)
 
-print(Fore.CYAN + Style.BRIGHT + """
+print(Fore.CYAN + Style.BRIGHT + r"""
   ___  ____ ___ _   _ _____ 
  / _ \/ ___|_ _| \ | |_   _|
 | | | \___ \| ||  \| | | |  
@@ -19,9 +19,12 @@ def check_tor():
       r = requests.get("https://httpbin.org/ip", proxies=TOR_PROXY)
       print(Fore.MAGENTA + f"[*] Tor IP: {r.json()['origin']}\n")
 
-    except:
-      print(Fore.RED + "[!] Tor is not running! Start it with: 'sudo systemctl start tor' ")
-      exit()
+    except requests.exceptions.ConnectionError:
+      print(Fore.RED + "[!] Tor is not running!")
+    except requests.exceptions.Timeout:
+      print(Fore.YELLOW + "[!] Tor check timed out, but might still be working")
+    except Exception:
+      print(Fore.YELLOW + "[~] Tor check inconclusive, but continuing scan")
 
 check_tor()
 

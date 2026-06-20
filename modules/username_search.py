@@ -8,6 +8,8 @@ import csv
 from config import USER_AGENTS, TOR_PROXY
 from random import choice
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -30,15 +32,15 @@ class SiteSearch:
         with open("sites.json", 'r') as f:
             self.loaded_data = json.load(f)
 
-    # ----------- PINGING SITES -----------
+    # ----------- CHECKING SITE FUNCTION(request) -----------
     def check_site(self, site_name, site_data):
         url = site_data["url"] # Checking values in data file
         final_url = url.replace("{}", self.target) # Changing {} to username
         headers = {"User-Agent": choice(USER_AGENTS)} # Choice is from random library
 
-        # ----------- MAIN PING LOGIC -----------
+        #MAIN PING LOGIC
         try:
-            response = requests.get(final_url, headers=headers, proxies=TOR_PROXY, timeout=10)
+            response = requests.get(final_url, headers=headers,proxies=TOR_PROXY,timeout=10)
             if self.site_reach_errors(ping=response, site_name=site_name):
                 return  
             soup = BeautifulSoup(response.text, "html.parser")
@@ -68,6 +70,29 @@ class SiteSearch:
         except requests.exceptions.RequestException:
             print(Fore.RED + f"[!] Connection failed for {site_name}\n")
 
+    # ----------- CHECKING SITE FUNCTION(Selenium) -----------
+    def check_site_selenium(self, site_name, site_data):
+        driver = webdriver.Chrome()
+        url = site_data["url"]
+        final_url = url.replace("{}", self.target)
+        driver.get(final_url)
+
+        error_marker = site_data.get("error_text")
+        page_source = driver.page_source
+
+        is_found = error_marker not in page_source
+
+        if is_found:
+            print(f"{Fore.GREEN}[+] Found {site_name}!!\n{final_url}")
+        else:
+            print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}")
+        print()
+        
+        try:
+            driver.quit()
+        except Exception:
+            pass
+
     # ----------- SAVING RESULTS -----------
     def results_data(self):
         if self.export_file == "json": # Only touch the hard drive if the user opted in!
@@ -91,12 +116,16 @@ class SiteSearch:
             name: data for name, data in self.loaded_data.items()
             if not self.target_site or self.target_site.lower() == name.lower()
         }
-        
+
         # Run With Threads
         with ThreadPoolExecutor(max_workers=10) as executor:
             for name, data in sites.items():
-                executor.submit(self.check_site, name, data)
+                if data.get("needs_browser"):
+                    executor.submit(self.check_site_selenium, name, data)
+                else:
+                    executor.submit(self.check_site, name, data)
         self.results_data()
+
     
     # Creating CSV file for results(user-input)
     def file_format_csv(self):
@@ -127,6 +156,7 @@ class SiteSearch:
             print(Fore.YELLOW + f"[~] Unexpected status {ping.status_code} on {site_name}\n")
             return True
     
+    # ----------- METADATA EXTRACTING FUNCTION(soup) -----------
     def extract_metadata(self, site_data, soup):
         metadata = {}
         fields = site_data.get("metadata", {})

@@ -16,7 +16,8 @@
   "Reddit": {
   "url": "https://www.reddit.com/user/{}",
   "check_type": "error_text",
-  "error_text": "Sorry, nobody on Reddit goes by that name"
+  "error_text": "Sorry, nobody on Reddit goes by that name",
+  "needs_browser": true
   },
   "HackerNews": {
     "url": "https://hacker-news.firebaseio.com/v0/user/{}.json",
