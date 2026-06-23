@@ -2,6 +2,7 @@ from colorama import Fore, Style, init
 import argparse
 import requests
 from config import TOR_PROXY
+import asyncio
 
 init(autoreset=True)
 

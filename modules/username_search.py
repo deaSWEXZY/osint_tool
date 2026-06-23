@@ -11,11 +11,13 @@ from bs4 import BeautifulSoup
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-
+import asyncio
+import aiohttp
 init(autoreset=True) #Colorama Color Reset
 
 class SiteSearch:
     def __init__(self, target_username, target_site, export_file=""):
+        self.loaded_data = None
         self.target = target_username.strip() # Handling whitespaces.
         self.target_site = target_site
         self.export_file = export_file
@@ -33,42 +35,20 @@ class SiteSearch:
             self.loaded_data = json.load(f)
 
     # ----------- CHECKING SITE FUNCTION(request) -----------
-    def check_site(self, site_name, site_data):
-        url = site_data["url"] # Looks for URL as key in data file
-        final_url = url.replace("{}", self.target) # Changing {} in URL to username
-        headers = {"User-Agent": choice(USER_AGENTS)} # Randomly Picking Browsing User
+    async def check_site(self, session, site_name, site_data):
+        url = site_data["url"]
+        final_url = url.replace("{}", self.target)
+        headers = {"User-Agent": choice(USER_AGENTS)}
 
-        #HTTP site pinging via requests
         try:
-            response = requests.get(final_url, headers=headers,proxies=TOR_PROXY,timeout=10)
-            if self.site_reach_errors(ping=response, site_name=site_name):
-                return  
-            soup = BeautifulSoup(response.text, "html.parser")
-            success_marker = site_data.get("success_text")
-            error_marker = site_data.get("error_text")
-
-            # One Line Check
-            is_found = (success_marker in response.text) if success_marker else (error_marker not in response.text)
-
-            if is_found:
-                print(f"{Fore.GREEN}[+] Found {site_name}!!\n{final_url}\n")
-                metadata = self.extract_metadata(site_data, soup)
-                for key, value in metadata.items():
-                    if len(value) == 0:
-                        print(f"{Fore.CYAN}{key}: Empty Here!!")
-                    else:
-                        print(f"{Fore.CYAN}{key}: {value}")
-                with self.lock:
-                    self.results.append({
-                        "platform": site_name, 
-                        "url": final_url,
-                        **metadata
-                })
-            else:
-                print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}\n")
-    
-        except requests.exceptions.RequestException:
-            print(Fore.RED + f"[!] Connection failed for {site_name}\n")
+            async with session.get(final_url, headers=headers,proxy=TOR_PROXY ,timeout=10) as response:
+                html_content = await response.text()
+                
+                if "Not Found" not in html_content:
+                    print(f"Found on {site_name}!")
+                    self.results.append({"platform": site_name, "url": final_url})
+                    
+        except Exception as e: print(f"Error on {site_name}: {e}")
 
     # ----------- CHECKING SITE FUNCTION(Selenium) -----------
     def check_site_selenium(self, site_name, site_data):
@@ -124,22 +104,20 @@ class SiteSearch:
             print(Fore.CYAN + "[*] Scan complete. (Data not saved to disk)")
             
     # ----------- RUN FUNCTION -----------
-    def run_all(self):
+    async def run_all(self):
         self.load_data()
+        async with aiohttp.ClientSession() as session:
         
-        # Filtered dict first
-        sites = {
-            name: data for name, data in self.loaded_data.items()
-            if not self.target_site or self.target_site.lower() == name.lower()
-        }
-
-        # Run With Threads
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            for name, data in sites.items():
+            # 2. Create a list of 'slips' (Tasks) for every site
+            tasks = []
+            for name, data in self.loaded_data.items():
                 if data.get("needs_browser"):
-                    executor.submit(self.check_site_selenium, name, data)
+                    task = asyncio.to_thread(self.check_site_selenium, name, data)
                 else:
-                    executor.submit(self.check_site, name, data)
+                    task = self.check_site(session, name, data)
+                tasks.append(task)
+
+            await asyncio.gather(*tasks)
         self.results_data()
 
     
@@ -151,7 +129,7 @@ class SiteSearch:
                 writer.writeheader()
                 writer.writerows(self.results)
             except ValueError:
-                write = csv.DictWriter(file)
+                writer = csv.DictWriter(file)
     # Creating JSON file for results(user-input)
     def file_format_json(self):
         with open(self.PATH_FOR_RESULTS_JSON, 'w') as file:
@@ -169,18 +147,22 @@ class SiteSearch:
             color, message = error_codes[ping.status_code]
             print(color + f"[~] {message} on {site_name} ({ping.status_code})\n")
             return True
-        
+
         if ping.status_code >= 400:
             print(Fore.YELLOW + f"[~] Unexpected status {ping.status_code} on {site_name}\n")
             return True
-    
+        return None
+
     # ----------- METADATA EXTRACTING FUNCTION(soup) -----------
     def extract_metadata(self, site_data, soup):
         metadata = {}
         fields = site_data.get("metadata", {})
 
         for field, selector in fields.items():
-            element = soup.find(selector["tag"], class_=selector["class"])
+            if "class" in selector:
+                element = soup.find(selector["tag"], class_=selector["class"])
+            else:
+                element = None
             if element:
                 metadata[field] = element.text.strip()
         return metadata
