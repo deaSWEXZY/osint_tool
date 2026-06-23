@@ -1,8 +1,7 @@
 from colorama import Fore, Style, init
 import argparse
-import requests
 from config import TOR_PROXY
-import asyncio
+
 
 init(autoreset=True)
 
@@ -15,19 +14,19 @@ print(Fore.CYAN + Style.BRIGHT + r"""
       Username Scanner
 """ + Style.RESET_ALL)
 
-def check_tor():
-    try:
-      r = requests.get("https://httpbin.org/ip", proxies=TOR_PROXY)
-      print(Fore.MAGENTA + f"[*] Tor IP: {r.json()['origin']}\n")
+# def check_tor():
+#     try:
+#       r = requests.get("https://httpbin.org/ip", proxies=TOR_PROXY)
+#       print(Fore.MAGENTA + f"[*] Tor IP: {r.json()['origin']}\n")
 
-    except requests.exceptions.ConnectionError:
-      print(Fore.RED + "[!] Tor is not running!")
-    except requests.exceptions.Timeout:
-      print(Fore.YELLOW + "[!] Tor check timed out, but might still be working")
-    except Exception:
-      print(Fore.YELLOW + "[~] Tor check inconclusive, but continuing scan")
+#     except requests.exceptions.ConnectionError:
+#       print(Fore.RED + "[!] Tor is not running!")
+#     except requests.exceptions.Timeout:
+#       print(Fore.YELLOW + "[!] Tor check timed out, but might still be working")
+#     except Exception:
+#       print(Fore.YELLOW + "[~] Tor check inconclusive, but continuing scan")
 
-check_tor()
+# check_tor()
 
 # ----------- ARGUMENTS HANDLING CLI -----------
 parser = argparse.ArgumentParser(description="")
