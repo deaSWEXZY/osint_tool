@@ -1,13 +1,15 @@
 import json
 import csv
 from config import USER_AGENTS, TOR_PROXY
-from colorama import Fore, init
+from colorama import Fore, init, Style
 from random import choice
-
+from time import sleep
 import os
+import subprocess
 import threading
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium_stealth import stealth
 from selenium.webdriver.chrome.options import Options
 import asyncio
 import aiohttp
@@ -21,8 +23,7 @@ class SiteSearch:
         self.target_site = target_site
         self.export_file = export_file
         self.lock = threading.Lock() # Threadings
-        # This limits Selenium to exactly 2 concurrent browsers
-        self.browser_semaphore = asyncio.Semaphore(2)
+        self.browser_semaphore = asyncio.Semaphore(2) # This limits Selenium to 2 concurrent browsers
         self.results = [] # Result List of Data
 
         self.SAVE_DIR = "results_search" # Directory Name For Results
@@ -37,8 +38,8 @@ class SiteSearch:
     # ----------- CHECKING SITE FUNCTION(async) -----------
     async def check_site(self, session, site_name, site_data):
         url = site_data["url"]
-        final_url = url.replace("{}", self.target)
-        headers = {"User-Agent": choice(USER_AGENTS)} # Randomly Choosing USER INFO
+        final_url = url.format(self.target)
+        headers = {"User-Agent": choice(USER_AGENTS)}
 
         try:
             async with session.get(final_url, headers=headers,timeout=10) as response:
@@ -62,7 +63,7 @@ class SiteSearch:
                     is_found = error_marker not in html_content if error_marker else True
 
                 if is_found:
-                    print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}")
+                    print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}\n")
                     for key, value in metadata.items():
                         if len(value) == 0: print(f"{Fore.CYAN}{key}: Empty Here!!") #If no info
                         else: print(f"{Fore.CYAN}{key}: {value}") #Like name: peter
@@ -80,32 +81,43 @@ class SiteSearch:
         options.add_argument("--no-sandbox") # Bypasses OS security model layer (essential for resource limits)
         options.add_argument("--disable-dev-shm-usage") # Forces Chrome to use disk instead of RAM for temporary files
         options.add_argument("--disable-gpu") # Disables hardware acceleration hardware mapping
-        options.add_argument("--memory-pressure-off") # Prevents aggressive internal memory allocations
 
         # --- Bypass Linux Snap /tmp Permissions ---
         options.add_argument(f"--user-data-dir={os.getcwd()}/chrome-data")
+        
+        headers = choice(USER_AGENTS)
         
         driver = None
         try:
             driver = webdriver.Chrome(options=options)
             url = site_data["url"]
-            
 
-            final_url = url.replace("{}", self.target)
+            stealth(driver,
+                languages=['en-US', 'en'],
+                user_agent=headers,
+                platform="Win32",
+                vendor="Google Inc.",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True
+            )
+            
+            final_url = url.format(self.target)
             
             driver.get(final_url)
+            sleep(3)
             error_marker = site_data.get("error_text")
             page_source = driver.page_source
 
             is_found = error_marker not in page_source
 
             if is_found:
-                print(f"{Fore.GREEN}[+] Found {site_name}!!\n{final_url}")
+                print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}\n")
                 soup = BeautifulSoup(page_source, "html.parser")
                 metadata = self.extract_metadata(site_data, soup)
                 for key, value in metadata.items():
                     if len(value) == 0: print(f"{Fore.CYAN}{key}: Empty Here!!") #If no info
-                    else: print(f"{Fore.CYAN}{key}: {value}") #Like name: peter
+                    else: print(f"{Fore.CYAN}{key}: {value}\n") #Like name: peter
 
                 # Adding Results Via Threads
                 with self.lock:
@@ -114,12 +126,14 @@ class SiteSearch:
                         "url": final_url,
                         **metadata
                     })
+
             else: print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}")
 
-        except Exception as e:
-            print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
+        # except Exception as e:
+        #     print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
+        #     print(url)
         
-        finally: driver.quit() if driver else None
+        finally: driver.quit() if driver else print("No Web Driver.")
 
     # ----------- SELENIUM IN ASYNC(Semaphore) -----------
     async def selenium_runner(self, site_name, site_data):
@@ -144,9 +158,6 @@ class SiteSearch:
     async def run_all(self):
         self.load_data()
 
-        # socks_url = TOR_PROXY["http"].replace("socks5h://", "socks5://") if isinstance(TOR_PROXY, dict) else TOR_PROXY.replace("socks5h://", "socks5://")
-        # connector = ProxyConnector.from_url(socks_url, rdns=True)
-
         async with aiohttp.ClientSession() as session:                   
             tasks = [] # List Of Tasks
             for name, data in self.loaded_data.items(): #Looping Data
@@ -157,8 +168,16 @@ class SiteSearch:
                 tasks.append(task)
 
             await asyncio.gather(*tasks)
+
         self.results_data()
+        self.deleting_browser_data()
     
+    # ----------- DELETING BROWSER DATA -----------
+    def deleting_browser_data(self):
+        user_input = input(f"\n{Fore.RED + Style.DIM}Do you want to delete browser data directory?\n'Y'/'N': ").lower()
+
+        subprocess.run(['rm', '-rf', f"{os.getcwd()}/chrome-data"]) if user_input == 'y' else None
+
     # Creating CSV file for results(user-input)
     def file_format_csv(self):
         with open(self.PATH_FOR_RESULTS_CSV, 'w', newline='') as file:
