@@ -1,20 +1,26 @@
 {
-  "Twitter": {
-    "url": "https://twitter.com/{}",
-    "error_text": "This account doesn't exist"
+  "X_Twitter": {
+    "url": "https://x.com/{}",
+    "needs_browser": true,
+    "error_text": "this account doesn't exist",
+    "metadata": {
+      "display_name": {"tag": "span"}
+    }
   },
   "GitHub": {
     "url": "https://github.com/{}",
     "check_type": "error_text",
     "error_text": "Not Found",
+    "needs_browser": false,
     "metadata": {
       "name": {"tag": "span", "class": "p-name"},
-      "bio": {"tag": "div", "class": "p-note"},
+      "bio": {"tag": "div", "class": "p-note user-profile-bio"},
+      "organization": {"tag": "span", "class": "p-org"},
       "location": {"tag": "span", "class": "p-label"}
     }
   },
   "Reddit": {
-    "url": "https://www.reddit.com/user/{}",
+    "url": "https://www.reddit.com/user/{}/",
     "check_type": "error_text",
     "error_text": "Sorry, nobody on Reddit goes by that name",
     "needs_browser": true,
@@ -52,5 +58,21 @@
     "url": "https://gitlab.com/{}",
     "check_type": "error_text",
     "error_text": "404"
+  },
+  "Instagram": {
+    "url": "https://www.instagram.com/{}/",
+    "needs_browser": true,
+    "error_text": "this page isn't available",
+      "metadata": {
+          "title": {"tag": "title"}
+      }
+    },
+  "TikTok": {
+    "url": "https://www.tiktok.com/@{}",
+    "needs_browser": true,
+    "error_text": "couldn't find this account",
+    "metadata": {
+        "bio": {"tag": "h2", "class": "tiktok-share-sub-title"}
+    }
   }
 }

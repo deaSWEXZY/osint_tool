@@ -1,8 +1,8 @@
 import json
 import csv
-from config import USER_AGENTS, TOR_PROXY
+from config import USER_AGENTS
 from colorama import Fore, init, Style
-from random import choice
+import random
 from time import sleep
 import os
 import subprocess
@@ -13,6 +13,7 @@ from selenium_stealth import stealth
 from selenium.webdriver.chrome.options import Options
 import asyncio
 import aiohttp
+from aiohttp_socks import ProxyConnector
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -22,7 +23,7 @@ class SiteSearch:
         self.target = target_username.strip() # Handling whitespaces.
         self.target_site = target_site
         self.export_file = export_file
-        self.lock = threading.Lock() # Threadings
+        self.lock = threading.Lock() 
         self.browser_semaphore = asyncio.Semaphore(2) # This limits Selenium to 2 concurrent browsers
         self.results = [] # Result List of Data
 
@@ -39,7 +40,7 @@ class SiteSearch:
     async def check_site(self, session, site_name, site_data):
         url = site_data["url"]
         final_url = url.format(self.target)
-        headers = {"User-Agent": choice(USER_AGENTS)}
+        headers = {"User-Agent": random.choice(USER_AGENTS)}
 
         try:
             async with session.get(final_url, headers=headers,timeout=10) as response:
@@ -68,7 +69,12 @@ class SiteSearch:
                         if len(value) == 0: print(f"{Fore.CYAN}{key}: Empty Here!!") #If no info
                         else: print(f"{Fore.CYAN}{key}: {value}") #Like name: peter
                         
-                    self.results.append({"platform": site_name, "url": final_url})
+                    with self.lock:
+                        self.results.append({
+                            "platform": site_name,
+                            "url": final_url,
+                            **metadata
+                        })
                     
         except Exception as e: print(f"Error on {site_name}: {e}")
 
@@ -78,14 +84,16 @@ class SiteSearch:
         options.add_argument("--headless=new") # Opening Web without GUI
 
         # --- RAM & Stability Optimization Flags ---
-        options.add_argument("--no-sandbox") # Bypasses OS security model layer (essential for resource limits)
+        options.add_argument("--no-sandbox") # Bypasses OS security model layer
         options.add_argument("--disable-dev-shm-usage") # Forces Chrome to use disk instead of RAM for temporary files
         options.add_argument("--disable-gpu") # Disables hardware acceleration hardware mapping
 
         # --- Bypass Linux Snap /tmp Permissions ---
         options.add_argument(f"--user-data-dir={os.getcwd()}/chrome-data")
+
+        options.add_argument('--proxy-server=socks5://10.64.0.1:1080') # Proxy WireGuard
         
-        headers = choice(USER_AGENTS)
+        headers = random.choice(USER_AGENTS)
         
         driver = None
         try:
@@ -103,12 +111,12 @@ class SiteSearch:
             )
             
             final_url = url.format(self.target)
-            
             driver.get(final_url)
-            sleep(3)
+
+            sleep(2)
+
             error_marker = site_data.get("error_text")
             page_source = driver.page_source
-
             is_found = error_marker not in page_source
 
             if is_found:
@@ -129,11 +137,15 @@ class SiteSearch:
 
             else: print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}")
 
-        # except Exception as e:
-        #     print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
-        #     print(url)
+        except Exception as e:
+            print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
         
-        finally: driver.quit() if driver else print("No Web Driver.")
+        finally:
+            if driver is not None:
+                try: driver.quit()
+                except Exception: pass
+
+            else: print("No Web Driver...")
 
     # ----------- SELENIUM IN ASYNC(Semaphore) -----------
     async def selenium_runner(self, site_name, site_data):
@@ -157,14 +169,17 @@ class SiteSearch:
     # ----------- RUN FUNCTION -----------
     async def run_all(self):
         self.load_data()
+        
+        connector = ProxyConnector.from_url('socks5://10.64.0.1:1080')
 
-        async with aiohttp.ClientSession() as session:                   
+        async with aiohttp.ClientSession(connector=connector) as session:                   
             tasks = [] # List Of Tasks
             for name, data in self.loaded_data.items(): #Looping Data
                 if data.get("needs_browser"):
                     task = self.selenium_runner(name, data)
                 else:
                     task = self.check_site(session, name, data) # Running Asyncio Session
+                    await asyncio.sleep(random.uniform(0.5, 1.5))
                 tasks.append(task)
 
             await asyncio.gather(*tasks)
