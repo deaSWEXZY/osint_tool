@@ -8,8 +8,9 @@ print(Fore.CYAN + Style.BRIGHT + r"""
  / _ \/ ___|_ _| \ | |_   _|
 | | | \___ \| ||  \| | | |  
 | |_| |___) | || |\  | | |  
- \___/|____/___|_| \_| |_|  
-      Username Scanner
+ \___/|____/___|_| \_| |_|
+        
+Username Scanner by Swexzy.
 """ + Style.RESET_ALL)
 
 # ----------- ARGUMENTS HANDLING CLI -----------

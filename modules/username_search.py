@@ -1,5 +1,5 @@
 import json
-import csv
+import pandas as pd
 from config import USER_AGENTS
 from colorama import Fore, init, Style
 import random
@@ -66,9 +66,11 @@ class SiteSearch:
                 if is_found:
                     print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}\n")
                     for key, value in metadata.items():
-                        if len(value) == 0: print(f"{Fore.CYAN}{key}: Empty Here!!") #If no info
-                        else: print(f"{Fore.CYAN}{key}: {value}") #Like name: peter
-                        
+                        if metadata[key] is not None:
+                            if len(value) == 0: pass
+                            else: print(f"{Fore.CYAN}{key}: {value}")
+                        else: pass
+
                     with self.lock:
                         self.results.append({
                             "platform": site_name,
@@ -76,23 +78,23 @@ class SiteSearch:
                             **metadata
                         })
                     
-        except Exception as e: print(f"Error on {site_name}: {e}")
+        except Exception as e: print(f"Error on {site_name}: {type(e).__name__}: {e}")
 
     # ----------- CHECKING SITE FUNCTION(Selenium) -----------
     def check_site_selenium(self, site_name, site_data):
         options = Options() # Chromium Setting
         options.add_argument("--headless=new") # Opening Web without GUI
 
-        # --- RAM & Stability Optimization Flags ---
+        # --- RAM and Stability Optimization ---
         options.add_argument("--no-sandbox") # Bypasses OS security model layer
         options.add_argument("--disable-dev-shm-usage") # Forces Chrome to use disk instead of RAM for temporary files
         options.add_argument("--disable-gpu") # Disables hardware acceleration hardware mapping
 
-        # --- Bypass Linux Snap /tmp Permissions ---
-        options.add_argument(f"--user-data-dir={os.getcwd()}/chrome-data")
+        # --- Bypassing Linux Snap /tmp Permissions ---
+        options.add_argument(f"--user-data-dir={os.getcwd()}/chrome-data/{site_name}")
 
-        options.add_argument('--proxy-server=socks5://10.64.0.1:1080') # Proxy WireGuard
-        
+        # options.add_argument('--proxy-server=socks5://10.64.0.1:1080') # Proxy WireGuard
+
         headers = random.choice(USER_AGENTS)
         
         driver = None
@@ -112,9 +114,7 @@ class SiteSearch:
             
             final_url = url.format(self.target)
             driver.get(final_url)
-
             sleep(2)
-
             error_marker = site_data.get("error_text")
             page_source = driver.page_source
             is_found = error_marker not in page_source
@@ -124,9 +124,9 @@ class SiteSearch:
                 soup = BeautifulSoup(page_source, "html.parser")
                 metadata = self.extract_metadata(site_data, soup)
                 for key, value in metadata.items():
-                    if len(value) == 0: print(f"{Fore.CYAN}{key}: Empty Here!!") #If no info
-                    else: print(f"{Fore.CYAN}{key}: {value}\n") #Like name: peter
-
+                    if metadata[key] is not None:
+                        if len(value) == 0: pass
+                        else: print(f"{Fore.CYAN}{key}: {value}\n")
                 # Adding Results Via Threads
                 with self.lock:
                     self.results.append({
@@ -135,16 +135,14 @@ class SiteSearch:
                         **metadata
                     })
 
-            else: print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}")
+            else: print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}\n")
 
         except Exception as e:
             print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
         
         finally:
             if driver is not None:
-                try: driver.quit()
-                except Exception: pass
-
+                driver.quit()
             else: print("No Web Driver...")
 
     # ----------- SELENIUM IN ASYNC(Semaphore) -----------
@@ -195,13 +193,8 @@ class SiteSearch:
 
     # Creating CSV file for results(user-input)
     def file_format_csv(self):
-        with open(self.PATH_FOR_RESULTS_CSV, 'w', newline='') as file:
-            try:
-                writer = csv.DictWriter(file, fieldnames=['platform', 'url'])
-                writer.writeheader()
-                writer.writerows(self.results)
-            except ValueError:
-                writer = csv.DictWriter(file)
+        pd.DataFrame(self.results).to_csv(self.PATH_FOR_RESULTS_CSV, index=False, encoding='utf-8')
+                
     # Creating JSON file for results(user-input)
     def file_format_json(self):
         with open(self.PATH_FOR_RESULTS_JSON, 'w') as file:
@@ -229,14 +222,25 @@ class SiteSearch:
     # ----------- METADATA EXTRACTING FUNCTION(soup) -----------
     def extract_metadata(self, site_data, soup):
         metadata = {}
+        
         fields = site_data.get("metadata", {})
-
         for field, selector in fields.items():
-            if "class" in selector:
-                element = soup.find(selector["tag"], class_=selector["class"])
-            else:
-                element = None
+            tag = selector["tag"]
+            if "attr" and "value" in selector:
+                attr_name = selector["attr"]
+                attr_value = selector["value"]
+
+                element = soup.find(tag, attrs={attr_name: attr_value})
+
+            elif "class" in selector:
+                element = soup.find(tag, class_=selector["class"])
+
+            else: element = soup.find(tag)
+
             if element:
-                metadata[field] = element.text.strip()
+                if tag == "meta":
+                    metadata[field] = element.get("content", "").strip()
+                else: metadata[field] = element.text.strip()
+            else:
+                metadata[field] = None
         return metadata
-    
