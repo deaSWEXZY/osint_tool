@@ -2,7 +2,7 @@
   "X_Twitter": {
     "url": "https://x.com/{}",
     "needs_browser": true,
-    "error_text": "this account doesn't exist",
+    "error_text": "We're unable to show this account",
     "metadata": {
       "display_name": {"tag": "span"}
     }
