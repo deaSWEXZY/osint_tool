@@ -14,6 +14,7 @@ from selenium.webdriver.chrome.options import Options
 import asyncio
 import aiohttp
 from aiohttp_socks import ProxyConnector
+import Algorithm.data_vector as dt
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -170,7 +171,7 @@ class SiteSearch:
         
         connector = ProxyConnector.from_url('socks5://10.64.0.1:1080')
 
-        async with aiohttp.ClientSession(connector=connector) as session:                   
+        async with aiohttp.ClientSession() as session:                   
             tasks = [] # List Of Tasks
             for name, data in self.loaded_data.items(): #Looping Data
                 if data.get("needs_browser"):
