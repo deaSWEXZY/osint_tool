@@ -19,14 +19,28 @@ def cosine_similiarity(v, u):
 
     return (dot_product / (v_magnitude * u_magnitude)) 
 
-def similiar_names(v1, alphabet):
-    new_username = ""
-    for char in alphabet:
-        new_username += char
-        v2 = to_vector(new_username, alphabet)
-    similiarity = cosine_similiarity(v1, v2)
-    
-    return new_username, similiarity
 
-v1 = to_vector("swexzy", alphabet)
-print(similiar_names(v1, alphabet))
+def generate_candidates(username):
+    candidates = set()
+
+    common_chars = ["_", "official", "1", "777", "999", "$", "x", "real"]
+
+    for p in common_chars:
+        candidates.add(f"{username}{p}")
+        candidates.add(f"{p}{username}")
+        candidates.add(f"{username}_{p}")
+        candidates.add(f"{p}_{username}")
+    
+    leet_mods = username.replace('e', '3').replace('s', '5').replace('x', 'z')
+    candidates.add(leet_mods)
+
+
+    for x in range(len(username)):
+        double_char = username[:x] + username[x] + username[:x]
+        candidates.add(double_char)
+    
+    candidates.discard(username)
+
+    return list(candidates)
+
+print(generate_candidates("swexzy"))
