@@ -1,5 +1,4 @@
 import numpy as np
-from difflib import SequenceMatcher
 
 def to_vector(username, alphabet):
     vector = []
@@ -16,11 +15,6 @@ def cosine_similiarity(v, u):
         return 0.0
     dot_product = np.dot(v, u)
     return dot_product / (v_magnitude * u_magnitude)
-
-def string_distance_ratio(str1, str2):
-    # Returns a value between 0 (completely different) and 1 (identical strings)
-    # This checks character order and structural alignment
-    return SequenceMatcher(None, str1, str2).ratio()
 
 def generate_candidates(username):
     candidates = set()
