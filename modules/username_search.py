@@ -15,6 +15,7 @@ import asyncio
 import aiohttp
 from aiohttp_socks import ProxyConnector
 import Algorithm.data_vector as dt
+import string
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -27,6 +28,8 @@ class SiteSearch:
         self.lock = threading.Lock() 
         self.browser_semaphore = asyncio.Semaphore(2) # This limits Selenium to 2 concurrent browsers
         self.results = [] # Result List of Data
+        self.not_found = 0
+        self.alphabet = string.ascii_lowercase + string.digits + "_"
 
         self.SAVE_DIR = "results_search" # Directory Name For Results
         self.PATH_FOR_RESULTS_JSON = f"{self.SAVE_DIR}/{self.target}_results.json"
@@ -136,7 +139,9 @@ class SiteSearch:
                         **metadata
                     })
 
-            else: print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}\n")
+            else:
+                print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}\n")
+                self.not_found += 1
 
         except Exception as e:
             print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
@@ -183,6 +188,7 @@ class SiteSearch:
 
             await asyncio.gather(*tasks)
 
+        self.suggestions(username=self.target, alphabet=self.alphabet)
         self.results_data()
         self.deleting_browser_data()
     
@@ -212,6 +218,7 @@ class SiteSearch:
         if response.status in error_codes:
             color, message = error_codes[response.status]
             print(color + f"[~] {message} on {site_name} ({response.status})\n")
+            self.not_found += 1
             return True
 
         if response.status >= 400:
@@ -245,3 +252,14 @@ class SiteSearch:
             else:
                 metadata[field] = None
         return metadata
+    
+    def suggestions(self, username, alphabet):
+        accurates_usname = dt.most_accurate(username=username, alphabet=alphabet)
+        
+        count = 1
+        if self.not_found > 3:
+            print(f"{Fore.GREEN + Style.BRIGHT}Maybe you mean\n---------------")
+            for name in accurates_usname:
+                print(f"{count}.{name}")
+                count += 1
+            
