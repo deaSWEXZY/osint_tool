@@ -1,6 +1,6 @@
 import numpy as np
 
- # ----------- USERNAME VECTOR (CHARS APPEAR. IN ALPHABET) -----------
+# ----------- USERNAME VECTOR (CHARS APPEAR. IN ALPHABET) -----------
 def to_vector(username, alphabet):
     vector = []
     lowercase_username = username.lower()
@@ -9,7 +9,7 @@ def to_vector(username, alphabet):
         vector.append(count)
     return vector
 
- # ----------- COSINE SIMILIARITY(cos of angle between vectors) -----------
+# ----------- COSINE SIMILIARITY(cos of angle between vectors) -----------
 def cosine_similiarity(v, u):
     v_magnitude = np.linalg.norm(v)
     u_magnitude = np.linalg.norm(u)
