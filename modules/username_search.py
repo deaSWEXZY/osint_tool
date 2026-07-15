@@ -13,7 +13,6 @@ from selenium_stealth import stealth
 from selenium.webdriver.chrome.options import Options
 import asyncio
 import aiohttp
-from aiohttp_socks import ProxyConnector
 import Algorithm.data_vector as dt
 import string
 
@@ -97,8 +96,6 @@ class SiteSearch:
         # --- Bypassing Linux Snap /tmp Permissions ---
         options.add_argument(f"--user-data-dir={os.getcwd()}/chrome-data/{site_name}")
 
-        # options.add_argument('--proxy-server=socks5://10.64.0.1:1080') # Proxy WireGuard
-
         headers = random.choice(USER_AGENTS)
         
         driver = None
@@ -174,7 +171,6 @@ class SiteSearch:
     async def run_all(self):
         self.load_data()
         
-        connector = ProxyConnector.from_url('socks5://10.64.0.1:1080')
 
         async with aiohttp.ClientSession() as session:                   
             tasks = [] # List Of Tasks
@@ -253,6 +249,7 @@ class SiteSearch:
                 metadata[field] = None
         return metadata
     
+     # ----------- USERNAME SUGGESTIONS ALGORITHM CALL -----------
     def suggestions(self, username, alphabet):
         accurates_usname = dt.most_accurate(username=username, alphabet=alphabet)
         

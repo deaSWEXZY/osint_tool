@@ -1,5 +1,6 @@
 import numpy as np
 
+ # ----------- USERNAME VECTOR (CHARS APPEAR. IN ALPHABET) -----------
 def to_vector(username, alphabet):
     vector = []
     lowercase_username = username.lower()
@@ -8,6 +9,7 @@ def to_vector(username, alphabet):
         vector.append(count)
     return vector
 
+ # ----------- COSINE SIMILIARITY(cos of angle between vectors) -----------
 def cosine_similiarity(v, u):
     v_magnitude = np.linalg.norm(v)
     u_magnitude = np.linalg.norm(u)
@@ -17,10 +19,10 @@ def cosine_similiarity(v, u):
     return dot_product / (v_magnitude * u_magnitude)
 
 def generate_candidates(username):
-    candidates = set()
+    candidates = set() 
+    common_chars = ["_", "official", "1", "777", "999", "$", "x", "real"] # Common Prefixes in names
 
-    common_chars = ["_", "official", "1", "777", "999", "$", "x", "real"]
-
+    # Adding to set Matching Candidates
     for p in common_chars:
         candidates.add(f"{username}{p}")
         candidates.add(f"{p}{username}")
@@ -40,10 +42,11 @@ def most_accurate(username, alphabet):
     username_length = len(username)
 
     for candidate in candidates:
-        u = to_vector(candidate, alphabet)
+        u = to_vector(candidate, alphabet) # Vectorizing Candidates 
         len2 = len(candidate)
-        length_ratio = min(username_length, len2) / max(username_length, len2)
+        length_ratio = min(username_length, len2) / max(username_length, len2) # Lengths ratio (F.E 10/11)
 
+        # Predicting Accurates
         if length_ratio >= 0.70:
             if cosine_similiarity(v1, u) >= 0.90: result.append(candidate)
                 

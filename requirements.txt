@@ -1,4 +1,7 @@
-requests==2.34.2
-colorama==0.4.6
-selenium
+aiohttp
 beautifulsoup4
+colorama
+numpy
+pandas
+selenium
+selenium-stealth
