@@ -5,8 +5,3 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/605.1.15 Version/16.5 Safari/605.1.15"
 ]
-
-TOR_PROXY = {
-    "http": "socks5h://127.0.0.1:9050",
-    "https": "socks5h://127.0.0.1:9050"
-}

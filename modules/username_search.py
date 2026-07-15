@@ -52,7 +52,7 @@ class SiteSearch:
                 if self.site_reach_errors(response, site_name): return
 
                 html_content = await response.text()
-                soup = BeautifulSoup(html_content, "html.parser")
+                soup = await asyncio.to_thread(BeautifulSoup, html_content, "html.parser")
                 metadata = self.extract_metadata(site_data, soup)
         
                 error_marker = site_data.get("error_text")
