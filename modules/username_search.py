@@ -48,7 +48,13 @@ class SiteSearch:
 
         try:
             async with session.get(final_url, headers=headers,timeout=10) as response:
-
+                
+                if response.status == 429:
+                    print(f"{Fore.YELLOW}[~] Rate limited on {site_name} (429). Backing off...")
+                    await asyncio.sleep(5.0)
+                    self.not_found += 1
+                    return
+                
                 if self.site_reach_errors(response, site_name): return
 
                 html_content = await response.text()
@@ -171,10 +177,8 @@ class SiteSearch:
     # ----------- RUN FUNCTION -----------
     async def run_all(self):
         self.load_data()
-        
-
-        async with aiohttp.ClientSession() as session:                   
-            tasks = [] # List Of Tasks
+        async with aiohttp.ClientSession() as session:    
+            tasks = []
             for name, data in self.loaded_data.items(): #Looping Data
                 if data.get("needs_browser"):
                     task = self.selenium_runner(name, data)
@@ -209,7 +213,6 @@ class SiteSearch:
         error_codes = {
             403: (Fore.YELLOW, "Blocked"),
             404: (Fore.RED, "Not found"),
-            429: (Fore.YELLOW, "Rate limited"),
         }
 
         if response.status in error_codes:

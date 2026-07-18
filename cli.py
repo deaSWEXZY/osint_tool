@@ -3,15 +3,33 @@ import argparse
 
 init(autoreset=True)
 
-print(Fore.CYAN + Style.BRIGHT + r"""
-  ___  ____ ___ _   _ _____ 
- / _ \/ ___|_ _| \ | |_   _|
-| | | \___ \| ||  \| | | |  
-| |_| |___) | || |\  | | |  
- \___/|____/___|_| \_| |_|
-        
-Username Scanner by Swexzy.
-""" + Style.RESET_ALL)
+print(Fore.GREEN + Style.BRIGHT + r"""
+      _,.
+    ,` -.)
+   ( _/-\\-._
+  /,|`--._,-^|
+    |        |              / _ \/ ___|_ _| \ | |_   _|
+    |        |             | | | \___ \| ||  \| | | |  
+    |        |             | |_| |___) | || |\  | | |  
+    |        |              \___/|____/___|_| \_| |_|         
+  \_| |`-._/||          ,'|
+    |  `-, / |         /  /
+    |     || |        /  /
+     `r-._||/   __   /  /
+ __,-<_     )`-/  `./  /
+'  \   `---'   \   /  /
+    |           |./  /
+    /           //  /
+\_/' \         |/  /
+ |    |   _,^-'/  /
+ |    , ``  (\/  /_
+  \,.->._    \X-=/^
+  (  /   `-._//^`
+   `Y-.____(__}
+    |     {__)
+          ()
+
+""" + Style.RESET_ALL + Style.DIM + "Username Scanner by Swexzy.\n")
 
 # ----------- ARGUMENTS HANDLING CLI -----------
 parser = argparse.ArgumentParser(description="")
