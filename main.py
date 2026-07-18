@@ -8,7 +8,7 @@ init(autoreset=True)
 
 if __name__ == "__main__":
     start_time = time.time()
-    scanner_username = SiteSearch(cli.USER_NAME, cli.SITE_TO_SEARCH, cli.OUTPUT_FILE)
+    scanner_username = SiteSearch(cli.USER_NAME, cli.SITE_TO_SEARCH,cli.SIMILIARITY,cli.OUTPUT_FILE)
     asyncio.run(scanner_username.run_all())
     end_time = time.time()
 

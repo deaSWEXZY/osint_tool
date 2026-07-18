@@ -17,6 +17,7 @@ Username Scanner by Swexzy.
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("username")
 parser.add_argument("--site", default="")
+parser.add_argument("--similiarity", type=float, default=0.90, help="Similiarity threshold(more precise)")
 parser.add_argument("--output", choices=['json', 'csv'], help='Save results as CSV or JSON.')
 args = parser.parse_args()
 
@@ -24,3 +25,4 @@ args = parser.parse_args()
 USER_NAME = args.username.strip()
 SITE_TO_SEARCH = args.site or ""
 OUTPUT_FILE = args.output
+SIMILIARITY = args.similiarity

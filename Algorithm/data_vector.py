@@ -35,7 +35,7 @@ def generate_candidates(username):
 
     return list(candidates)
 
-def most_accurate(username, alphabet):
+def most_accurate(username, alphabet, similiarity):
     v1 = to_vector(username, alphabet)
     candidates = generate_candidates(username)
     result = []
@@ -48,7 +48,7 @@ def most_accurate(username, alphabet):
 
         # Predicting Accurates
         if length_ratio >= 0.70:
-            if cosine_similiarity(v1, u) >= 0.90: result.append(candidate)
+            if cosine_similiarity(v1, u) >= similiarity: result.append(candidate)
                 
     return result
 

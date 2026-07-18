@@ -19,7 +19,7 @@ import string
 init(autoreset=True) #Colorama Color Reset
 
 class SiteSearch:
-    def __init__(self, target_username, target_site, export_file=""):
+    def __init__(self, target_username, target_site, similiarity, export_file=""):
         self.loaded_data = None
         self.target = target_username.strip() # Handling whitespaces.
         self.target_site = target_site
@@ -28,6 +28,7 @@ class SiteSearch:
         self.browser_semaphore = asyncio.Semaphore(2) # This limits Selenium to 2 concurrent browsers
         self.results = [] # Result List of Data
         self.not_found = 0
+        self.similiarity = similiarity
         self.alphabet = string.ascii_lowercase + string.digits + "_"
 
         self.SAVE_DIR = "results_search" # Directory Name For Results
@@ -251,7 +252,7 @@ class SiteSearch:
     
      # ----------- USERNAME SUGGESTIONS ALGORITHM CALL -----------
     def suggestions(self, username, alphabet):
-        accurates_usname = dt.most_accurate(username=username, alphabet=alphabet)
+        accurates_usname = dt.most_accurate(username=username, alphabet=alphabet, similiarity=self.similiarity)
         
         count = 1
         if self.not_found > 3:
