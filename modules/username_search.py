@@ -3,19 +3,14 @@ import pandas as pd
 from config import USER_AGENTS
 from colorama import Fore, init, Style
 import random
-from time import sleep
 import os
-import subprocess
 import threading
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium_stealth import stealth
-from selenium.webdriver.chrome.options import Options
 import asyncio
-import aiohttp
+import nodriver as uc
 import Algorithm.data_vector as dt
 import string
-import shutil
+from curl_cffi.requests import AsyncSession
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -48,118 +43,90 @@ class SiteSearch:
         headers = {"User-Agent": random.choice(USER_AGENTS)}
 
         try:
-            async with session.get(final_url, headers=headers,timeout=10) as response:
-                
-                if response.status == 429:
-                    print(f"{Fore.YELLOW}[~] Rate limited on {site_name} (429). Backing off...")
-                    await asyncio.sleep(5.0)
-                    self.not_found += 1
-                    return
-                
-                if self.site_reach_errors(response, site_name): return
-
-                html_content = await response.text()
-                soup = await asyncio.to_thread(BeautifulSoup, html_content, "html.parser")
-                metadata = self.extract_metadata(site_data, soup)
-        
-                error_marker = site_data.get("error_text")
-                success_marker = site_data.get("success_text")
-
-                check_type = site_data.get("check_type", "error_text")
- 
-                if check_type == "success_text":
-                    success_marker = site_data.get("success_text")
-                    is_found = success_marker in html_content if success_marker else True
-                else:
-                    error_marker = site_data.get("error_text")
-                    is_found = error_marker not in html_content if error_marker else True
-
-                if is_found:
-                    print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}\n")
-                    for key, value in metadata.items():
-                        if metadata[key] is not None:
-                            if len(value) == 0: pass
-                            else: print(f"{Fore.CYAN}{key}: {value}")
-                        else: pass
-
-                    with self.lock:
-                        self.results.append({
-                            "platform": site_name,
-                            "url": final_url,
-                            **metadata
-                        })
-                    
-        except Exception as e: print(f"Error on {site_name}: {type(e).__name__}: {e}")
-
-    # ----------- CHECKING SITE FUNCTION(Selenium) -----------
-    def check_site_selenium(self, site_name, site_data):
-        options = Options() # Chromium Setting
-        options.add_argument("--headless=new") # Opening Web without GUI
-
-        # --- RAM and Stability Optimization ---
-        options.add_argument("--no-sandbox") # Bypasses OS security model layer
-        options.add_argument("--disable-dev-shm-usage") # Forces Chrome to use disk instead of RAM for temporary files
-        options.add_argument("--disable-gpu") # Disables hardware acceleration hardware mapping
-
-        # --- Bypassing Linux Snap /tmp Permissions ---
-        options.add_argument(f"--user-data-dir={os.getcwd()}/chrome-data/{site_name}")
-
-        headers = random.choice(USER_AGENTS)
-        
-        driver = None
-        try:
-            driver = webdriver.Chrome(options=options)
-            url = site_data["url"]
-
-            stealth(driver,
-                languages=['en-US', 'en'],
-                user_agent=headers,
-                platform="Win32",
-                vendor="Google Inc.",
-                webgl_vendor="Intel Inc.",
-                renderer="Intel Iris OpenGL Engine",
-                fix_hairline=True
-            )
+            response = await session.get(final_url, headers=headers, timeout=10)
+            if response.status_code == 429:
+                print(f"{Fore.YELLOW}[~] Rate limited on {site_name} (429). Backing off...")
+                await asyncio.sleep(5.0)
+                self.not_found += 1
+                return
             
-            final_url = url.format(self.target)
-            driver.get(final_url)
-            sleep(2)
+            if self.site_reach_errors(response, site_name): return
+
+            html_content = response.text
+            soup = await asyncio.to_thread(BeautifulSoup, html_content, "html.parser")
+            metadata = self.extract_metadata(site_data, soup)
+    
             error_marker = site_data.get("error_text")
-            page_source = driver.page_source
-            is_found = error_marker not in page_source
+            success_marker = site_data.get("success_text")
+
+            check_type = site_data.get("check_type", "error_text")
+
+            if check_type == "success_text":
+                success_marker = site_data.get("success_text")
+                is_found = success_marker in html_content if success_marker else True
+            else:
+                error_marker = site_data.get("error_text")
+                is_found = error_marker not in html_content if error_marker else True
 
             if is_found:
                 print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}\n")
-                soup = BeautifulSoup(page_source, "html.parser")
-                metadata = self.extract_metadata(site_data, soup)
                 for key, value in metadata.items():
                     if metadata[key] is not None:
                         if len(value) == 0: pass
-                        else: print(f"{Fore.CYAN}{key}: {value}\n")
-                # Adding Results Via Threads
+                        else: print(f"{Fore.CYAN}{key}: {value}")
+                    else: pass
+
                 with self.lock:
                     self.results.append({
                         "platform": site_name,
                         "url": final_url,
                         **metadata
                     })
+                    
+        except Exception as e: print(f"Error on {site_name}: {type(e).__name__}: {e}")
 
-            else:
-                print(f"{Fore.RED}[-] Sorry, couldn't find anything in {site_name}\n")
-                self.not_found += 1
-
-        except Exception as e:
-            print(Fore.RED + f"[!] Connection failed for {site_name}: {e}\n")
-        
-        finally:
-            if driver is not None:
-                driver.quit()
-            else: print("No Web Driver...")
-
-    # ----------- SELENIUM IN ASYNC(Semaphore) -----------
-    async def selenium_runner(self, site_name, site_data):
+# ----------- CHECKING SITE FUNCTION (NODRIVER) -----------
+    async def check_site_nodriver(self, site_name, site_data):
         async with self.browser_semaphore:
-            await asyncio.to_thread(self.check_site_selenium, site_name, site_data)
+            try:
+                await asyncio.wait_for(
+                    self._run_nodriver_logic(site_name, site_data), 
+                    timeout=15.0
+                )
+            except asyncio.TimeoutError:
+                print(f"{Fore.RED}[!] Timeout on {site_name} (took longer than 15s)\n")
+                self.not_found += 1
+            except Exception as e:
+                print(f"{Fore.RED}[!] Error on {site_name}: {e}\n")
+
+    async def _run_nodriver_logic(self, site_name, site_data):
+        url = site_data["url"].format(self.target)
+        browser = None
+        try:
+            browser = await uc.start(
+                headless=True,
+                browser_args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            page = await browser.get(url)
+            await page.sleep(5)
+            page_source = await page.get_content()
+
+            error_marker = site_data.get("error_text")
+            is_found = error_marker not in page_source if error_marker else True
+
+            if is_found:
+                print(f"{Fore.GREEN}[+] Found {site_name}!\n{url}\n")
+                soup = BeautifulSoup(page_source, "html.parser")
+                metadata = self.extract_metadata(site_data, soup)
+                print(f"{Fore.CYAN}[*] Extracted metadata: {metadata}\n")
+                with self.lock:
+                    self.results.append({"platform": site_name, "url": url, **metadata})
+            else:
+                print(f"{Fore.RED}[-] Not found in {site_name}\n")
+                self.not_found += 1
+        finally:
+            if browser:
+                browser.stop()  
 
     # ----------- SAVING RESULTS -----------
     def results_data(self):
@@ -178,11 +145,11 @@ class SiteSearch:
     # ----------- RUN FUNCTION -----------
     async def run_all(self):
         self.load_data()
-        async with aiohttp.ClientSession() as session:    
+        async with AsyncSession(impersonate="chrome124") as session:    
             tasks = []
             for name, data in self.loaded_data.items(): #Looping Data
                 if data.get("needs_browser"):
-                    task = self.selenium_runner(name, data)
+                    task = self.check_site_nodriver(name, data)
                 else:
                     task = self.check_site(session, name, data) # Running Asyncio Session
                     await asyncio.sleep(random.uniform(0.5, 1.5))
@@ -192,13 +159,12 @@ class SiteSearch:
 
         self.suggestions(username=self.target, alphabet=self.alphabet)
         self.results_data()
-        self.deleting_browser_data()
     
     # ----------- DELETING BROWSER DATA -----------
-    def deleting_browser_data(self):
-        user_input = input(f"\n{Fore.RED + Style.DIM}Delete temporary browser profiles? (y/n): ").lower()
-        if user_input == 'y':
-            shutil.rmtree(os.path.join(os.getcwd(), "chrome-data"), ignore_errors=True)
+    # def deleting_browser_data(self):
+    #     user_input = input(f"\n{Fore.RED + Style.DIM}Delete temporary browser profiles? (y/n): ").lower()
+    #     if user_input == 'y':
+    #         shutil.rmtree(os.path.join(os.getcwd(), "chrome-data"), ignore_errors=True)
         
 
     # Creating CSV file for results(user-input)
@@ -217,14 +183,14 @@ class SiteSearch:
             404: (Fore.RED, "Not found"),
         }
 
-        if response.status in error_codes:
-            color, message = error_codes[response.status]
-            print(color + f"[~] {message} on {site_name} ({response.status})\n")
+        if response.status_code in error_codes:
+            color, message = error_codes[response.status_code]
+            print(color + f"[~] {message} on {site_name} ({response.status_code})\n")
             self.not_found += 1
             return True
 
-        if response.status >= 400:
-            print(Fore.YELLOW + f"[~] Unexpected status {response.status} on {site_name}\n")
+        if response.status_code >= 400:
+            print(Fore.YELLOW + f"[~] Unexpected status {response.status_code} on {site_name}\n")
             return True
         
         return False

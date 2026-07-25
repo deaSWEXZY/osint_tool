@@ -1,7 +1,6 @@
-aiohttp
+nodriver
 beautifulsoup4
 colorama
 numpy
 pandas
-selenium
-selenium-stealth
+curl_cffi
