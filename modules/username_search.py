@@ -15,6 +15,7 @@ import asyncio
 import aiohttp
 import Algorithm.data_vector as dt
 import string
+import shutil
 
 init(autoreset=True) #Colorama Color Reset
 
@@ -195,9 +196,10 @@ class SiteSearch:
     
     # ----------- DELETING BROWSER DATA -----------
     def deleting_browser_data(self):
-        user_input = input(f"\n{Fore.RED + Style.DIM}Do you want to delete browser data directory?\n'Y'/'N': ").lower()
-
-        subprocess.run(['rm', '-rf', f"{os.getcwd()}/chrome-data"]) if user_input == 'y' else None
+        user_input = input(f"\n{Fore.RED + Style.DIM}Delete temporary browser profiles? (y/n): ").lower()
+        if user_input == 'y':
+            shutil.rmtree(os.path.join(os.getcwd(), "chrome-data"), ignore_errors=True)
+        
 
     # Creating CSV file for results(user-input)
     def file_format_csv(self):
@@ -234,7 +236,7 @@ class SiteSearch:
         fields = site_data.get("metadata", {})
         for field, selector in fields.items():
             tag = selector["tag"]
-            if "attr" and "value" in selector:
+            if "attr" in selector and "value" in selector:
                 attr_name = selector["attr"]
                 attr_value = selector["value"]
 
