@@ -159,13 +159,6 @@ class SiteSearch:
 
         self.suggestions(username=self.target, alphabet=self.alphabet)
         self.results_data()
-    
-    # ----------- DELETING BROWSER DATA -----------
-    # def deleting_browser_data(self):
-    #     user_input = input(f"\n{Fore.RED + Style.DIM}Delete temporary browser profiles? (y/n): ").lower()
-    #     if user_input == 'y':
-    #         shutil.rmtree(os.path.join(os.getcwd(), "chrome-data"), ignore_errors=True)
-        
 
     # Creating CSV file for results(user-input)
     def file_format_csv(self):
