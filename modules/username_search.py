@@ -12,22 +12,26 @@ import Algorithm.data_vector as dt
 import string
 from curl_cffi.requests import AsyncSession
 
-init(autoreset=True) #Colorama Color Reset
+init(autoreset=True)
 
 class SiteSearch:
-    def __init__(self, target_username, target_site, similiarity, export_file=""):
+    def __init__(self, target_username, target_site="", similiarity=0.6, export_file=""):
         self.loaded_data = None
-        self.target = target_username.strip() # Handling whitespaces.
+        self.target = target_username.strip()
         self.target_site = target_site
         self.export_file = export_file
         self.lock = threading.Lock() 
-        self.browser_semaphore = asyncio.Semaphore(2) # This limits Selenium to 2 concurrent browsers
-        self.results = [] # Result List of Data
+        
+        # Limits concurrency
+        self.http_semaphore = asyncio.Semaphore(50) 
+        self.browser_semaphore = asyncio.Semaphore(2) 
+        
+        self.results = [] 
         self.not_found = 0
         self.similiarity = similiarity
         self.alphabet = string.ascii_lowercase + string.digits + "_"
 
-        self.SAVE_DIR = "results_search" # Directory Name For Results
+        self.SAVE_DIR = "results_search"
         self.PATH_FOR_RESULTS_JSON = f"{self.SAVE_DIR}/{self.target}_results.json"
         self.PATH_FOR_RESULTS_CSV = f"{self.SAVE_DIR}/{self.target}_result.csv"
 
@@ -36,56 +40,85 @@ class SiteSearch:
         with open("sites.json", 'r') as f:
             self.loaded_data = json.load(f)
 
-    # ----------- CHECKING SITE FUNCTION(async) -----------
+    # ----------- CHECKING SITE FUNCTION (async HTTP) -----------
     async def check_site(self, session, site_name, site_data):
-        url = site_data["url"]
-        final_url = url.format(self.target)
-        headers = {"User-Agent": random.choice(USER_AGENTS)}
-
-        try:
-            response = await session.get(final_url, headers=headers, timeout=10)
-            if response.status_code == 429:
-                print(f"{Fore.YELLOW}[~] Rate limited on {site_name} (429). Backing off...")
-                await asyncio.sleep(5.0)
-                self.not_found += 1
+        async with self.http_semaphore:
+            url = site_data.get("url", "")
+            if not url:
                 return
-            
-            if self.site_reach_errors(response, site_name): return
+                
+            final_url = url.format(self.target)
+            headers = {"User-Agent": random.choice(USER_AGENTS)}
 
-            html_content = response.text
-            soup = await asyncio.to_thread(BeautifulSoup, html_content, "html.parser")
-            metadata = self.extract_metadata(site_data, soup)
-    
-            error_marker = site_data.get("error_text")
-            success_marker = site_data.get("success_text")
+            try:
+                response = await session.get(final_url, headers=headers, timeout=8)
+                if response.status_code == 429:
+                    print(f"{Fore.YELLOW}[~] Rate limited on {site_name} (429). Backing off...")
+                    await asyncio.sleep(5.0)
+                    self.not_found += 1
+                    return
+                
+                if self.site_reach_errors(response, site_name): 
+                    return
 
-            check_type = site_data.get("check_type", "error_text")
+                error_type = site_data.get("errorType", "message")
+                html_content = response.text
+                error_marker = site_data.get("errorMsg")
 
-            if check_type == "success_text":
-                success_marker = site_data.get("success_text")
-                is_found = success_marker in html_content if success_marker else True
-            else:
-                error_marker = site_data.get("error_text")
-                is_found = error_marker not in html_content if error_marker else True
+                if error_type == "status_code":
+                    is_found = (response.status_code == 200)
+                else:
+                    error_marker = site_data.get("errorMsg")
+                    if isinstance(error_marker, list):
+                        is_found = not any(msg in html_content for msg in error_marker)
+                    elif error_marker:
+                        is_found = error_marker not in html_content
+                    else:
+                        is_found = True
 
-            if is_found:
-                print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}\n")
-                for key, value in metadata.items():
-                    if metadata[key] is not None:
-                        if len(value) == 0: pass
-                        else: print(f"{Fore.CYAN}{key}: {value}")
-                    else: pass
+                soup = await asyncio.to_thread(BeautifulSoup, html_content, "html.parser")
+                metadata = self.extract_metadata(site_data, soup)
 
-                with self.lock:
-                    self.results.append({
-                        "platform": site_name,
-                        "url": final_url,
-                        **metadata
-                    })
-                    
-        except Exception as e: print(f"Error on {site_name}: {type(e).__name__}: {e}")
+                page_title = (metadata.get("title") or "").lower()
+                page_bio = (metadata.get("bio") or "").lower()
+                generic_errors = [
+                    "404 - page not found",
+                    "page not found",
+                    "just a moment...",
+                    "security verification",
+                    "verifying your browser...",
+                    "page no longer exists",
+                    "create an account or log in to instagram",
+                    "log in • instagram",
+                    "attention required!",
+                    "before you continue to youtube",
+                    "chat de sexo ao vivo", # Filters generic adult landing pages with no specific user profile
+                ]
+                if any(err in page_title or err in page_bio for err in generic_errors):
+                    is_found = False
+                has_valid_metadata = any(bool(v) for v in metadata.values()) # If there is return True
 
-# ----------- CHECKING SITE FUNCTION (NODRIVER) -----------
+                if is_found and has_valid_metadata:
+                    print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}")
+
+                    for key, value in metadata.items():
+                        if value:
+                            print(f"  └─ {Fore.CYAN}{key}: {value}")
+                        print()
+                        
+                    with self.lock:
+                        self.results.append({
+                            "platform": site_name,
+                            "url": final_url,
+                            **metadata
+                        })
+                else:
+                    self.not_found += 1
+                        
+            except Exception:
+                self.not_found += 1
+
+    # ----------- CHECKING SITE FUNCTION (NODRIVER) -----------
     async def check_site_nodriver(self, site_name, site_data):
         async with self.browser_semaphore:
             try:
@@ -108,21 +141,30 @@ class SiteSearch:
                 browser_args=["--no-sandbox", "--disable-dev-shm-usage"]
             )
             page = await browser.get(url)
-            await page.sleep(5)
+            await page.sleep(4)
             page_source = await page.get_content()
 
-            error_marker = site_data.get("error_text")
-            is_found = error_marker not in page_source if error_marker else True
+            error_marker = site_data.get("error_text") or site_data.get("errorMsg")
+            if isinstance(error_marker, list):
+                is_found = not any(msg in page_source for msg in error_marker)
+            elif error_marker:
+                is_found = error_marker not in page_source
+            else:
+                is_found = True
 
             if is_found:
                 print(f"{Fore.GREEN}[+] Found {site_name}!\n{url}\n")
                 soup = BeautifulSoup(page_source, "html.parser")
                 metadata = self.extract_metadata(site_data, soup)
-                print(f"{Fore.CYAN}[*] Extracted metadata: {metadata}\n")
+                
+                for key, value in metadata.items():
+                    if value:
+                        print(f"  └─ {Fore.CYAN}{key}: {value}")
+                print()
+
                 with self.lock:
                     self.results.append({"platform": site_name, "url": url, **metadata})
             else:
-                print(f"{Fore.RED}[-] Not found in {site_name}\n")
                 self.not_found += 1
         finally:
             if browser:
@@ -130,41 +172,36 @@ class SiteSearch:
 
     # ----------- SAVING RESULTS -----------
     def results_data(self):
-        if self.export_file == "json": # Only touch the hard drive if the user opted in!
-            os.makedirs(self.SAVE_DIR, exist_ok=True) # Making Directory For Results
+        if self.export_file == "json":
+            os.makedirs(self.SAVE_DIR, exist_ok=True)
             self.file_format_json()
             print(Fore.CYAN + f"[*] Results securely saved to {self.PATH_FOR_RESULTS_JSON}")
         elif self.export_file == "csv":
-            os.makedirs(self.SAVE_DIR, exist_ok=True) # Making Directory For Results
+            os.makedirs(self.SAVE_DIR, exist_ok=True)
             self.file_format_csv()
             print(Fore.CYAN + f"[*] Results securely saved to {self.PATH_FOR_RESULTS_CSV}")
-        
         else:
             print(Fore.CYAN + "[*] Scan complete. (Data not saved to disk)")
-            
+
     # ----------- RUN FUNCTION -----------
     async def run_all(self):
         self.load_data()
         async with AsyncSession(impersonate="chrome124") as session:    
             tasks = []
-            for name, data in self.loaded_data.items(): #Looping Data
+            for name, data in self.loaded_data.items():
                 if data.get("needs_browser"):
-                    task = self.check_site_nodriver(name, data)
+                    tasks.append(self.check_site_nodriver(name, data))
                 else:
-                    task = self.check_site(session, name, data) # Running Asyncio Session
-                    await asyncio.sleep(random.uniform(0.5, 1.5))
-                tasks.append(task)
+                    tasks.append(self.check_site(session, name, data))
 
             await asyncio.gather(*tasks)
 
         self.suggestions(username=self.target, alphabet=self.alphabet)
         self.results_data()
 
-    # Creating CSV file for results(user-input)
     def file_format_csv(self):
         pd.DataFrame(self.results).to_csv(self.PATH_FOR_RESULTS_CSV, index=False, encoding='utf-8')
                 
-    # Creating JSON file for results(user-input)
     def file_format_json(self):
         with open(self.PATH_FOR_RESULTS_JSON, 'w') as file:
             json.dump(self.results, file, indent=4)
@@ -177,51 +214,66 @@ class SiteSearch:
         }
 
         if response.status_code in error_codes:
-            color, message = error_codes[response.status_code]
-            print(color + f"[~] {message} on {site_name} ({response.status_code})\n")
             self.not_found += 1
             return True
 
         if response.status_code >= 400:
-            print(Fore.YELLOW + f"[~] Unexpected status {response.status_code} on {site_name}\n")
+            self.not_found += 1
             return True
         
         return False
 
-    # ----------- METADATA EXTRACTING FUNCTION(soup) -----------
+   # ----------- METADATA EXTRACTING FUNCTION -----------
     def extract_metadata(self, site_data, soup):
         metadata = {}
-        
-        fields = site_data.get("metadata", {})
-        for field, selector in fields.items():
-            tag = selector["tag"]
-            if "attr" in selector and "value" in selector:
-                attr_name = selector["attr"]
-                attr_value = selector["value"]
 
-                element = soup.find(tag, attrs={attr_name: attr_value})
+        # 1. Custom JSON selectors (if available)
+        if "metadata" in site_data:
+            fields = site_data.get("metadata", {})
+            for field, selector in fields.items():
+                tag = selector.get("tag")
+                if not tag:
+                    continue
 
-            elif "class" in selector:
-                element = soup.find(tag, class_=selector["class"])
+                element = None
+                if "attr" in selector and "value" in selector:
+                    element = soup.find(tag, attrs={selector["attr"]: selector["value"]})
+                elif "class" in selector:
+                    element = soup.find(tag, class_=selector["class"])
+                else:
+                    element = soup.find(tag)
 
-            else: element = soup.find(tag)
+                if element:
+                    if tag == "meta":
+                        metadata[field] = (element.get("content") or "").strip()
+                    else:
+                        metadata[field] = (element.text or "").strip()
+                else:
+                    metadata[field] = None
+            return metadata
 
-            if element:
-                if tag == "meta":
-                    metadata[field] = element.get("content", "").strip()
-                else: metadata[field] = element.text.strip()
-            else:
-                metadata[field] = None
+        # 2. Meta Tag Fallback
+        og_title = soup.find("meta", property="og:title") or soup.find("meta", attrs={"name": "og:title"})
+        if og_title and og_title.get("content"):
+            metadata["title"] = og_title["content"].strip()
+        elif soup.title and soup.title.string:
+            clean_title = soup.title.string.strip()
+            if len(clean_title) < 100:
+                metadata["title"] = clean_title
+
+        og_desc = soup.find("meta", property="og:description") or soup.find("meta", attrs={"name": "description"})
+        if og_desc and og_desc.get("content"):
+            metadata["bio"] = og_desc["content"].strip()
+
         return metadata
-    
-     # ----------- USERNAME SUGGESTIONS ALGORITHM CALL -----------
+
+    # ----------- USERNAME SUGGESTIONS ALGORITHM CALL -----------
     def suggestions(self, username, alphabet):
-        accurates_usname = dt.most_accurate(username=username, alphabet=alphabet, similiarity=self.similiarity)
-        
-        count = 1
-        if self.not_found > 3:
-            print(f"{Fore.GREEN + Style.BRIGHT}Maybe you mean\n---------------")
-            for name in accurates_usname:
-                print(f"{count}.{name}")
-                count += 1
-            
+        try:
+            accurates_usname = dt.most_accurate(username=username, alphabet=alphabet, similiarity=self.similiarity)
+            if self.not_found > 3 and accurates_usname:
+                print(f"{Fore.GREEN + Style.BRIGHT}Maybe you mean\n---------------")
+                for count, name in enumerate(accurates_usname, 1):
+                    print(f"{count}. {name}")
+        except Exception:
+            pass
