@@ -14,24 +14,6 @@
     "url": "https://2Dimensions.com/a/{}",
     "urlMain": "https://2Dimensions.com/"
   },
-  "7Cups": {
-    "errorType": "status_code",
-    "url": "https://www.7cups.com/@{}",
-    "urlMain": "https://www.7cups.com/"
-  },
-  "9GAG": {
-    "errorType": "status_code",
-    "url": "https://www.9gag.com/u/{}",
-    "urlMain": "https://www.9gag.com/"
-  },
-  "APClips": {
-    "errorMsg": "Adult Content Creators",
-    "title_meta": "Amateur Porn Videos, Photos & Adult Content Creators | APClips.com",
-    "errorType": "message",
-    "isNSFW": true,
-    "url": "https://apclips.com/",
-    "urlMain": "https://apclips.com/"
-  },
   "About.me": {
     "errorType": "status_code",
     "url": "https://about.me/{}",
@@ -42,18 +24,6 @@
     "regexCheck": "^[^.]*$",
     "url": "https://independent.academia.edu/{}",
     "urlMain": "https://www.academia.edu/"
-  },
-  "AdmireMe.Vip": {
-    "errorMsg": "Page Not Found",
-    "errorType": "message",
-    "isNSFW": true,
-    "url": "https://admireme.vip/",
-    "urlMain": "https://admireme.vip/"
-  },
-  "Airbit": {
-    "errorType": "status_code",
-    "url": "https://airbit.com/{}",
-    "urlMain": "https://airbit.com/"
   },
   "Airliners": {
     "errorType": "status_code",
@@ -93,12 +63,6 @@
     "urlMain": "https://anilist.co/",
     "urlProbe": "https://graphql.anilist.co/"
   },
-  "Apple Developer": {
-    "errorType": "message",
-    "errotMsg": "Security Verification",
-    "url": "https://developer.apple.com/forums/profile/{}",
-    "urlMain": "https://developer.apple.com"
-  },
   "Apple Discussions": {
     "errorMsg": "Looking for something in Apple Support Communities?",
     "errorType": "message",
@@ -134,12 +98,6 @@
     "errorType": "status_code",
     "url": "https://forum.arduino.cc/u/{}/summary",
     "urlMain": "https://forum.arduino.cc/"
-  },
-  "ArtStation": {
-    "errorType": "status_code",
-    "url": "https://www.artstation.com/{}",
-    "urlMain": "https://www.artstation.com/",
-    "urlProbe": "https://www.artstation.com/users/{}.json"
   },
   "Asciinema": {
     "errorType": "status_code",

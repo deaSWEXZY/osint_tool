@@ -3,7 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+#Results
 results_search/
+results_search_telegram/
 
 # C extensions
 *.so
@@ -85,7 +87,11 @@ profile_default/
 ipython_config.py
 
 # My adds
-chrome-data/
+modules/user_session.session
+modules/telegram_search.py
+.env
+*.env
+
 
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
