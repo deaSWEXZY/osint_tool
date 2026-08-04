@@ -2,6 +2,7 @@ import asyncio
 import time # Measuring executed time
 import cli
 from modules.username_search import SiteSearch
+from modules.telegram_search import UserSearchTg
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -13,3 +14,7 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print(f"\n{Fore.MAGENTA + Style.BRIGHT}Executed time: {end_time - start_time:.2f} seconds")
+    scanner_telegram = UserSearchTg(cli.USER_NAME, export_file="json")
+    print(f"\n{Fore.GREEN + Style.BRIGHT}Starting Telegram Search..")
+    scanner_telegram.running()
+    scanner_telegram.saving_results()

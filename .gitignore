@@ -87,8 +87,7 @@ profile_default/
 ipython_config.py
 
 # My adds
-modules/user_session.session
-modules/telegram_search.py
+user_session.session
 .env
 *.env
 

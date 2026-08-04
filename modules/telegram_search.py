@@ -12,6 +12,7 @@ class UserSearchTg:
         load_dotenv() # Hidden in .env file
         self.API_ID = int(os.getenv("API_ID_TG", 0))
         self.API_HASH = os.getenv("API_HASH_TG")
+        self.BOT_TOKEN = os.getenv("BOT_TOKEN_TG")
         self.TARGET = target
         self.EXPORT_FILE = export_file
         self.SAVE_DIR = "results_search_telegram"
@@ -52,14 +53,8 @@ class UserSearchTg:
             self.saving_in_json()
         else:
             pass
+        
     def running(self):
+        self.client.start(bot_token=self.BOT_TOKEN)
         with self.client:
             self.client.loop.run_until_complete(self.search_engine())
-
-if __name__ == "__main__":
-    test_target = 'durov'
-    search = UserSearchTg(test_target, export_file="json")
-    print("testing...")
-    search.running()
-    search.saving_results()
-    
