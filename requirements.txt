@@ -4,3 +4,5 @@ colorama
 numpy
 pandas
 curl_cffi
+telethon
+dotenv

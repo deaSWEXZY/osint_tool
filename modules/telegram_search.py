@@ -3,9 +3,12 @@ from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.types import User, Channel
 import json
+import pandas as pd
+from colorama import Fore, init
 from dotenv import load_dotenv
 import os
 
+init(autoreset=True)
 
 class UserSearchTg:
     def __init__(self, target, export_file = ""):
@@ -15,8 +18,9 @@ class UserSearchTg:
         self.BOT_TOKEN = os.getenv("BOT_TOKEN_TG")
         self.TARGET = target
         self.EXPORT_FILE = export_file
-        self.SAVE_DIR = "results_search_telegram"
-        self.PATH_FOR_RESULTS_JSON = f"{self.SAVE_DIR}/{self.TARGET}_results.json"
+        self.SAVE_DIR = "results_search"
+        self.PATH_FOR_RESULTS_JSON = f"{self.SAVE_DIR}/{self.TARGET}_results_telegram.json"
+        self.PATH_FOR_RESULTS_CSV = f"{self.SAVE_DIR}/{self.TARGET}_results_telegram.csv"
 
         self.results = []
         self.client = TelegramClient('user_session', self.API_ID, self.API_HASH)
@@ -43,16 +47,20 @@ class UserSearchTg:
         except Exception as e:
             print(f"Error: {e}")
 
-    def saving_in_json(self):
+    def file_format_json(self):
         with open(self.PATH_FOR_RESULTS_JSON, "w") as file:
             json.dump(self.results, file, indent=4)
 
+    def file_format_csv(self):
+            pd.DataFrame(self.results).to_csv(self.PATH_FOR_RESULTS_CSV, index=False, encoding='utf-8')
+
     def saving_results(self):
         if self.EXPORT_FILE == "json":
-            os.makedirs(self.SAVE_DIR, exist_ok=True)
-            self.saving_in_json()
-        else:
-            pass
+            self.file_format_json()
+            print(Fore.BLUE + f"[*] Results for Telegram securely saved to {self.PATH_FOR_RESULTS_CSV}")
+        if self.EXPORT_FILE == "csv":
+            self.file_format_csv()
+            print(Fore.BLUE + f"[*] Results for Telegram securely saved to {self.PATH_FOR_RESULTS_JSON}")
         
     def running(self):
         self.client.start(bot_token=self.BOT_TOKEN)
