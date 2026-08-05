@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-from config import USER_AGENTS
+import config as cfg
 from colorama import Fore, init, Style
 import random
 import os
@@ -48,7 +48,7 @@ class SiteSearch:
                 return
                 
             final_url = url.format(self.target)
-            headers = {"User-Agent": random.choice(USER_AGENTS)}
+            headers = {"User-Agent": random.choice(cfg.USER_AGENTS)}
 
             try:
                 response = await session.get(final_url, headers=headers, timeout=8)
@@ -81,22 +81,10 @@ class SiteSearch:
 
                 page_title = (metadata.get("title") or "").lower()
                 page_bio = (metadata.get("bio") or "").lower()
-                generic_errors = [
-                    "404 - page not found",
-                    "page not found",
-                    "just a moment...",
-                    "security verification",
-                    "verifying your browser...",
-                    "page no longer exists",
-                    "create an account or log in to instagram",
-                    "log in • instagram",
-                    "attention required!",
-                    "before you continue to youtube",
-                    "chat de sexo ao vivo", # Filters generic adult landing pages with no specific user profile
-                ]
-                if any(err in page_title or err in page_bio for err in generic_errors):
+
+                if any(err in page_title or err in page_bio for err in cfg.generic_errors):
                     is_found = False
-                has_valid_metadata = any(bool(v) for v in metadata.values()) # If there is return True
+                has_valid_metadata = any(bool(v) for v in metadata.values()) # If there is boolean assign to var
 
                 if is_found and has_valid_metadata:
                     print(f"{Fore.GREEN}[+] Found {site_name}!\n{final_url}")
@@ -207,7 +195,7 @@ class SiteSearch:
             json.dump(self.results, file, indent=4)
 
     # ----------- WEB ERRORS DEBUG -----------
-    def site_reach_errors(self, response, site_name):
+    def site_reach_errors(self, response):
         error_codes = {
             403: (Fore.YELLOW, "Blocked"),
             404: (Fore.RED, "Not found"),
