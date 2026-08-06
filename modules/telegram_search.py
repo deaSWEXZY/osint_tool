@@ -28,12 +28,18 @@ class UserSearchTg:
     async def search_engine(self):
         try:
             entity = await self.client.get_entity(self.TARGET)
+            path = await self.client.download_profile_photo(entity=entity, file=f"{self.SAVE_DIR}/{self.TARGET}_pfp.jpg")
+
             user_data = {
                 "id": entity.id,
                 "name": getattr(entity, 'first_name', getattr(entity, 'title', 'N/A')),
                 "username": entity.username or "N/A",
                 "bio": "N/A"
             }
+            if path:
+                print(f"{Fore.LIGHTBLUE_EX}Profile picture saved to {path}")
+            else:
+                print(f"{Fore.RED}Target doesn't have a pfp.")
 
             if isinstance(entity, User):
                 full_user = await self.client(GetFullUserRequest(entity))
@@ -58,10 +64,12 @@ class UserSearchTg:
         if self.EXPORT_FILE == "json":
             self.file_format_json()
             print(Fore.BLUE + f"[*] Results for Telegram securely saved to {self.PATH_FOR_RESULTS_CSV}")
-        if self.EXPORT_FILE == "csv":
+        elif self.EXPORT_FILE == "csv":
             self.file_format_csv()
             print(Fore.BLUE + f"[*] Results for Telegram securely saved to {self.PATH_FOR_RESULTS_JSON}")
-        
+        else:
+            print(Fore.BLUE + f"[*] Results for Telegram not saved.")
+            
     def running(self):
         self.client.start(bot_token=self.BOT_TOKEN)
         with self.client:
